@@ -1,0 +1,100 @@
+# Load necessary libraries
+library(tidyverse)
+library(forecast)
+library(tseries)
+library(ggplot2)
+library(lmtest)
+library(car)
+library(gridExtra)
+
+# Load and clean data
+# Assume data is stored in 'pga_data.csv' with proper headers
+# Columns: Player, Year, Total_SG, SG_Approach, SG_Putting, SG_OTT, SG_ARG, Age, Tournaments, Wins
+
+pga_data <- read.csv("pga_data.csv")
+
+# Filter players with complete data from 2009–2024
+clean_data <- pga_data %>%
+  filter(Year >= 2009 & Year <= 2024) %>%
+  group_by(Player) %>%
+  filter(n() == 16) %>%
+  ungroup()
+
+# Create player-specific time series
+rory_sg <- clean_data %>% filter(Player == "Rory McIlroy") %>% pull(Total_SG)
+finau_sg <- clean_data %>% filter(Player == "Tony Finau") %>% pull(Total_SG)
+scottie_sg <- clean_data %>% filter(Player == "Scottie Scheffler") %>% pull(Total_SG)
+
+# Simulate player SG data (replace with real data import if available)
+set.seed(42)
+years <- 2009:2024
+rory_sg <- cumsum(rnorm(length(years), mean = 0.2, sd = 0.3)) + 1.5
+finau_sg <- cumsum(rnorm(length(years), mean = 0.1, sd = 0.5)) + 1.0
+scottie_sg <- cumsum(rnorm(length(years), mean = 0.15, sd = 0.25)) + 1.2
+
+# Convert to time series
+rory_ts <- ts(rory_sg, start = 2009)
+finau_ts <- ts(finau_sg, start = 2009)
+scottie_ts <- ts(scottie_sg, start = 2009)
+
+# ADF Tests
+adf.test(rory_ts)
+adf.test(finau_ts)
+adf.test(scottie_ts)
+
+# Plot ADF comparison manually with ggplot if needed
+
+# ARIMA modeling for Scottie
+model_scottie <- auto.arima(scottie_ts)
+forecast_scottie <- forecast(model_scottie, h=2)
+autoplot(forecast_scottie) + ggtitle("ARIMA Forecast for Scottie Scheffler")
+
+# Model selection (AIC/BIC)
+orders <- list(c(0,1,1), c(1,1,0), c(1,1,1), c(2,1,0))
+aic_vals <- c()
+bic_vals <- c()
+for (o in orders) {
+  fit <- Arima(rory_ts, order=o)
+  aic_vals <- c(aic_vals, AIC(fit))
+  bic_vals <- c(bic_vals, BIC(fit))
+}
+data.frame(Model = sapply(orders, toString), AIC = aic_vals, BIC = bic_vals)
+
+# Forecasting accuracy (example)
+true <- c(2.8, 3.1)
+pred <- c(3.0, 3.2)
+mae <- mean(abs(true - pred))
+rmse <- sqrt(mean((true - pred)^2))
+mape <- mean(abs((true - pred) / true)) * 100
+c(MAE = mae, RMSE = rmse, MAPE = mape)
+
+# Regression setup
+n <- 100
+Total_SG <- rnorm(n, 2.5, 0.4)
+SG_Approach <- rnorm(n, 1.0, 0.3)
+SG_Putting <- rnorm(n, 0.8, 0.2)
+Age <- rnorm(n, 30, 5)
+Tournaments <- sample(15:25, n, replace=TRUE)
+Lagged_Wins <- sample(0:3, n, replace=TRUE)
+Wins <- 0.6 * Total_SG + 0.4 * SG_Approach + 0.3 * SG_Putting -
+        0.05 * Age + 0.02 * Tournaments + 0.1 * Lagged_Wins + rnorm(n, 0, 0.5)
+
+df <- data.frame(Wins, Total_SG, SG_Approach, SG_Putting, Age, Tournaments, Lagged_Wins)
+model <- lm(Wins ~ ., data = df)
+summary(model)
+
+# Regression diagnostics
+par(mfrow=c(2,2))
+plot(model)
+
+# Shapiro-Wilk test
+shapiro.test(residuals(model))
+
+# Breusch-Pagan test
+bptest(model)
+
+# Durbin-Watson test
+dwtest(model)
+
+# VIF
+vif(model)
