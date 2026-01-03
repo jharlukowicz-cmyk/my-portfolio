@@ -8,4 +8,4 @@ This project uses Python to model an individuals car insurance based on various 
 This is my Introduction to Econometrics research paper. For this paper, I used cross-sectional data from the Bureau of Labor Statistics to estimate the causal effect of wage increases on employment in fast food restaurants in CT using a multivariate Ordinary Least Squares regression. The code shown at the end of the paper is written in Stata. Above I have the paper attached, so you have the download it separately. 
 
 # 3. Predicting PGA TOUR Player Wins for the 2026 Season Using Time Series Methods
-This project uses 
+This project is from my Applied Time Series class and employs player-level time series decomposition, stationarity testing via ADF, ARIMA modeling guided by ACF/PACF diagnostics, and forecast evaluation metrics to generate projected strokes gained values, which are then incorporated into a multivariate regression framework to predict PGA TOUR wins. The data I use is form the official PGA Tour website, which provides player strokes gained data throughout their year(s) on the tour. The code is done using R.
